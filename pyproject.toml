@@ -1,7 +1,7 @@
 [project]
 name = "rgba-vae"
 version = "0.1.0"
-description = "A VAE model structure for small RGBA images"
+description = "A VAE model for RGBA images"
 readme = "README.md"
 authors = [
     { name = "Faxuan Cai", email = "magicianaio@gmail.com" }
