@@ -1,13 +1,48 @@
 [project]
 name = "rgba-vae"
 version = "0.1.0"
-description = "Add your description here"
+description = "A VAE model structure for small RGBA images"
 readme = "README.md"
 authors = [
-    { name = "Layer-norm", email = "magicianaio@gmail.com" }
+    { name = "Faxuan Cai", email = "magicianaio@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy",
+    "pillow>=10.0.0",
+    "torch",
+    "torchvision",
+    "transformers>=4.57.6",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+[tool.uv.sources]
+# Install PyTorch with CUDA support on Linux/Windows (CUDA doesn't exist for Mac).
+# NOTE: We must explicitly request them as `dependencies` above. These improved
+# versions will not be selected if they're only third-party dependencies.
+torch = [
+  { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cuda", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+# Use PyTorch built for NVIDIA Toolkit version 12.8
+# Available versions: https://pytorch.org/get-started/locally/
+url = "https://download.pytorch.org/whl/cu128"
+# Only use this index when explicitly requested by `tool.uv.sources`.
+explicit = true
 
 [project.scripts]
 rgba-vae = "rgba_vae:main"
