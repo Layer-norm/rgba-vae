@@ -1,4 +1,7 @@
+import torch
 from dataclasses import dataclass
+
+
 from typing import List
 
 @dataclass
@@ -9,9 +12,14 @@ class DefaultConfig:
     num_channels: int = 4  # RGBA channels
 
     # Training parameters
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    optimizer: str = "adamw"
     learning_rate: float = 1e-3
     num_epochs: int = 100
     batch_size: int = 16
+    save_every_n_epochs: int = 10
+    dropout: float = 0.1
+    checkpoint_dir: str = "checkpoints"
 
     # Data preprocessing
     image_size: int = 64
