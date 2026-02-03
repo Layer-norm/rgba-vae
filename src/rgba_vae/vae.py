@@ -77,7 +77,7 @@ class VAE(nn.Module):
         for layer in self.decoder_layers:
             x = layer(x)
 
-        return nn.Sigmoid(x)
+        return torch.sigmoid(x)
     
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)
