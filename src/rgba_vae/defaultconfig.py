@@ -1,5 +1,5 @@
 import torch
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 from typing import List
@@ -7,9 +7,9 @@ from typing import List
 @dataclass
 class DefaultConfig:
     # Model architecture
-    hidden_dim: List[int] = [64, 128, 256, 256]
+    hidden_dims: List[int] = field(default_factory=lambda: [64, 128, 256, 256])
     latent_dim: int = 128
-    num_channels: int = 4  # RGBA channels
+    in_channels: int = 4  # RGBA channels
 
     # Training parameters
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
