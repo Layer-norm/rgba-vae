@@ -47,10 +47,6 @@ class ToyTextImageDataset(Dataset):
         # 生成RGBA图像
         image = self.generate_rgba_image(color, shape)
         
-        # return {
-        #     'image': self.transform(image),
-        #     'text': prompt
-        # }
         return self.transform(image), prompt
     
     def generate_rgba_image(self, color, shape):
