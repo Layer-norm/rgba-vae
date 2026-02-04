@@ -28,6 +28,7 @@ class VAE(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.image_size = image_size
+        self.hidden_dims = hidden_dims
         self.hidden_dim = hidden_dims[-1]
         self.latent_dim = latent_dim
 

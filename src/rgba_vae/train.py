@@ -3,15 +3,16 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-import tqdm
+from tqdm import tqdm
 
-from defaultconfig import DefaultConfig
-from vae import VAE
+from .defaultconfig import DefaultConfig
+from .vae import VAE
 
 from typing import List
 
 def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: torch.Tensor) -> List[torch.Tensor]:
-    recon_loss = F.mse_loss(recon_x, x, reduction='sum')
+    # recon_loss = F.mse_loss(recon_x, x, reduction='sum')
+    recon_loss = F.l1_loss(recon_x, x, reduction='sum')
 
     kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
@@ -40,9 +41,9 @@ def train_vae(vae_model: VAE, dataset: torch.utils.data.Dataset, config: Default
         total_recon_loss = 0
         total_kl_loss = 0
         
-        progress_bar = tqdm.tqdm(dataloader, desc=f"Training Epoch {epoch+1}")
+        progress_bar = tqdm(dataloader, desc=f"Training Epoch {epoch+1}")
 
-        for batch in progress_bar:
+        for batch, _ in progress_bar:
             x = batch.to(config.device)
 
             optimizer.zero_grad()
