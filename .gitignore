@@ -151,6 +151,7 @@ tiny-imagenet-200/
 
 # Checkpoints
 checkpoints/
+reconstructions/
 
 # Spyder project settings
 .spyderproject
