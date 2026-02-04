@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 
@@ -17,6 +18,37 @@ def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: 
     kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
 
     return recon_loss + kl_divergence, recon_loss, kl_divergence
+
+
+def save_reconstructions(model: VAE, dataset: torch.utils.data.Dataset, config: DefaultConfig, epoch: int):
+    model.eval()
+    with torch.no_grad():
+        sample_batch, _ = next(iter(DataLoader(dataset, batch_size=8, shuffle=False)))
+        x = sample_batch.to(config.device)
+
+        recon_x, _, _ = model(x)
+
+        def denormalize(tensor):
+            return tensor * 0.5 + 0.5  # 逆向标准化操作
+
+        original_images = denormalize(x.cpu())
+        reconstructed_images = denormalize(recon_x.cpu())
+
+        fig, axes = plt.subplots(2, 8, figsize=(16, 4))
+        for i in range(8):
+            # original image
+            axes[0, i].imshow(original_images[i].permute(1, 2, 0).numpy())
+            axes[0, i].axis('off')
+            axes[0, i].set_title("Original")
+
+            # reconstructed image
+            axes[1, i].imshow(reconstructed_images[i].permute(1, 2, 0).numpy())
+            axes[1, i].axis('off')
+            axes[1, i].set_title("Reconstructed")
+
+        plt.tight_layout()
+        plt.savefig(f"reconstructions/reconstruction_epoch_{epoch}.png")
+        plt.close()
 
 
 def train_vae(vae_model: VAE, dataset: torch.utils.data.Dataset, config: DefaultConfig) -> None:
@@ -74,3 +106,5 @@ def train_vae(vae_model: VAE, dataset: torch.utils.data.Dataset, config: Default
                 'loss': f"{total_loss / len(dataloader):.4f}",
             }, checkpoint_path)
             print(f"Checkpoint saved at {checkpoint_path}")
+
+            save_reconstructions(vae_model, dataset, config, epoch + 1)
