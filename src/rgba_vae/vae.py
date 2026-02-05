@@ -88,17 +88,7 @@ class VAE(nn.Module):
     def encode_to_latent(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.encode(x)
         z = self.reparameterize(mu, log_var)
-        
-        z = self.fc_decoder(z)
-        feature_map_size = self.image_size // (2 ** len(self.hidden_dims))
-        z = z.view(-1, self.hidden_dim, feature_map_size, feature_map_size)
         return z
-    
-    def decode_from_latent(self, x: torch.Tensor) -> torch.Tensor:
-
-        for layer in self.decoder_layers:
-            x = layer(x)
-        return torch.sigmoid(x)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.encode(x)
