@@ -84,6 +84,11 @@ class VAE(nn.Module):
         std = torch.exp(0.5 * log_var)
         eps = torch.randn_like(std)
         return mu + eps * std
+    
+    def encode_to_latent(self, x: torch.Tensor) -> torch.Tensor:
+        mu, log_var = self.encode(x)
+        z = self.reparameterize(mu, log_var)
+        return z
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.encode(x)
