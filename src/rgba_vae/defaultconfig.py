@@ -9,7 +9,7 @@ class DefaultConfig:
     # Model architecture
     hidden_dims: List[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
-    in_channels: int = 4  # RGBA channels
+    in_channels: int = 4  # 4 channels for RGBA images
 
     # Training parameters
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
