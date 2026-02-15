@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from .vae import VAE
 
+from typing import Optional, List
 
 class Discriminator(nn.Module):
     def __init__(self, channels: int=4):
@@ -34,10 +35,16 @@ class Discriminator(nn.Module):
 
 
 class VAEGAN(nn.Module):
-    def __init__(self, vae: VAE, discriminator: Discriminator):
+    def __init__(self, 
+                 in_channels: int, 
+                 image_size: int, 
+                 hidden_dims: List[int], 
+                 latent_dim: int, 
+                 dropout: float = 0.1
+        ) -> None:
         super().__init__()
-        self.vae = vae
-        self.discriminator = discriminator
+        self.vae = VAE(in_channels, image_size, hidden_dims, latent_dim, dropout)
+        self.discriminator = Discriminator()
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.vae.encode(x)
