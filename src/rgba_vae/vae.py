@@ -24,7 +24,7 @@ class DoubleConv(nn.Module):
 
 
 # Encoder: q(z|x)
-class Encoder(nn.modules):
+class Encoder(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
@@ -65,7 +65,7 @@ class Encoder(nn.modules):
 
 
 # Decoder/Generator: p(x|z)
-class Decoder(nn.modules):
+class Decoder(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
@@ -73,6 +73,9 @@ class Decoder(nn.modules):
                  latent_dim: int, 
                  dropout: float = 0.1
         ) -> None:
+        super().__init__()
+
+        self.hidden_dim = hidden_dims[-1]
 
         self.feature_map_size = image_size // (2 ** len(hidden_dims))
         self.flattened_dim = int(hidden_dims[-1] * (self.feature_map_size ** 2))
@@ -112,12 +115,11 @@ class VAE(nn.Module):
         self.in_channels = in_channels
         self.image_size = image_size
         self.hidden_dims = hidden_dims
-        self.hidden_dim = hidden_dims[-1]
         self.latent_dim = latent_dim
         self.dropout = dropout
 
-        self.encode = Encoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
-        self.decorde = Decoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
+        self.encode = Encoder(self.in_channels, self.image_size, self.hidden_dims, self.latent_dim, self.dropout)
+        self.decode = Decoder(self.in_channels, self.image_size, self.hidden_dims, self.latent_dim, self.dropout)
     
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)

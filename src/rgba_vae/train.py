@@ -130,7 +130,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=4)
     
     encoder_optimizer = torch.optim.AdamW(vaegan_model.vae.encode.parameters(), lr=config.learning_rate)
-    decoder_optimizer = torch.optim.AdamW(vaegan_model.vae.dncode.parameters(), lr=config.learning_rate)
+    decoder_optimizer = torch.optim.AdamW(vaegan_model.vae.decode.parameters(), lr=config.learning_rate)
     discriminator_optimizer = torch.optim.AdamW(vaegan_model.discriminator.parameters(), lr=config.learning_rate)
 
     for epoch in range(config.num_epochs):
@@ -152,7 +152,8 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
             real_validity = vaegan_model.discriminator(x)
         
             with torch.no_grad():
-                _, _, _, real_validity, fake_validity = vaegan_model(x)
+                recon_x, _, _= vaegan_model(x)
+            fake_validity = vaegan_model.discriminator(recon_x.detach())
             
             d_loss = adversarial_loss(real_validity, fake_validity)
             d_loss.backward()
@@ -162,12 +163,12 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
 
-            recon_x, mu, log_var, _, _ = vaegan_model(x)
+            recon_x, mu, log_var = vaegan_model(x)
 
             v_loss, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
             fake_gan_validity = vaegan_model.discriminator(recon_x)
-            g_loss = F.binary_cross_entropy(fake_validity, torch.ones_like(fake_validity))
+            g_loss = F.binary_cross_entropy(fake_gan_validity, torch.ones_like(fake_validity))
 
             generator_loss =  v_loss + g_loss
 
