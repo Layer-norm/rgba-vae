@@ -7,8 +7,11 @@ from .vae import VAE
 from typing import Optional, List
 
 class Discriminator(nn.Module):
-    def __init__(self, channels: int=4):
+    def __init__(self, channels: int=4, image_size: int=64):
         super().__init__()
+        
+        self.feature_size = image_size // (2 ** 3)
+
         self.conv = nn.Sequential(
             # Input: (batch, channels, 32, 32)
             nn.Conv2d(channels, 32, kernel_size=4, stride=2, padding=1),  # 16x16
@@ -22,7 +25,7 @@ class Discriminator(nn.Module):
         )
         
         self.fc = nn.Sequential(
-            nn.Linear(128 * 4 * 4, 1),
+            nn.Linear(128 * self.feature_size * self.feature_size, 1),
             nn.Sigmoid()
         )
 
@@ -44,15 +47,11 @@ class VAEGAN(nn.Module):
         ) -> None:
         super().__init__()
         self.vae = VAE(in_channels, image_size, hidden_dims, latent_dim, dropout)
-        self.discriminator = Discriminator()
+        self.discriminator = Discriminator(in_channels, image_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.vae.encode(x)
         z = self.vae.reparameterize(mu, log_var)
         x_recon = self.vae.decode(z)
 
-        # gan
-        real_validity = self.discriminator(x)
-        fake_validity = self.discriminator(x_recon.detach())
-
-        return x_recon, mu, log_var, real_validity, fake_validity
+        return x_recon, mu, log_var
