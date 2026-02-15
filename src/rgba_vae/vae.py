@@ -101,8 +101,6 @@ class Decoder(nn.modules):
 
 class VAE(nn.Module):
     def __init__(self, 
-                 encoder:Encoder, 
-                 decoder:Decoder,
                  in_channels: int, 
                  image_size: int, 
                  hidden_dims: List[int], 
@@ -118,8 +116,8 @@ class VAE(nn.Module):
         self.latent_dim = latent_dim
         self.dropout = dropout
 
-        self.encode = encoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
-        self.decorde = decoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
+        self.encode = Encoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
+        self.decorde = Decoder(self.in_channels, self.image_size, self.latent_dim, self.dropout)
     
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)
