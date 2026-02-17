@@ -7,7 +7,7 @@ def main():
     config = VAEGANConfig()
     
     # 2. 创建数据集
-    dataset = ToyTextImageDataset(num_samples=1000)
+    dataset = ToyTextImageDataset(num_samples=2000)
     
     # 3. 初始化VAE模型
     vae_model = VAEGAN(
