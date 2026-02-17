@@ -32,7 +32,8 @@ def adversarial_loss(
 
     return adversarial_loss
 
-
+def feature_matching_loss(real_features: torch.Tensor, fake_features: torch.Tensor) -> torch.Tensor:
+    return F.mse_loss(real_features, fake_features)
 
 def save_reconstructions(model: VAE, dataset: torch.utils.data.Dataset, config: DefaultConfig, epoch: int):
     model.eval()
@@ -139,6 +140,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
 
         total_vae_loss = 0
         total_gan_loss = 0
+        total_fm_loss = 0
         total_recon_loss = 0
         total_kl_loss = 0
         total_discriminator_loss = 0
@@ -149,11 +151,11 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
             x = batch.to(config.device)
 
             # discriminator
-            real_validity = vaegan_model.discriminator(x)
+            real_validity, _ = vaegan_model.discriminator(x)
         
             with torch.no_grad():
                 recon_x, _, _= vaegan_model(x)
-            fake_validity = vaegan_model.discriminator(recon_x.detach())
+            fake_validity, _ = vaegan_model.discriminator(recon_x.detach())
             
             d_loss = adversarial_loss(real_validity, fake_validity)
             d_loss.backward()
@@ -167,10 +169,18 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
 
             v_loss, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
-            fake_gan_validity = vaegan_model.discriminator(recon_x)
-            g_loss = F.binary_cross_entropy(fake_gan_validity, torch.ones_like(fake_validity))
+            _, real_features = vaegan_model.discriminator(x)
 
-            generator_loss =  v_loss + g_loss
+            fake_validity_gen, fake_features_gen = vaegan_model.discriminator(recon_x)
+
+            # gan loss
+            g_loss = F.binary_cross_entropy(fake_validity_gen, torch.ones_like(fake_validity_gen))
+
+
+            # feature matching loss
+            fm_loss = feature_matching_loss(real_features, fake_features_gen)
+
+            generator_loss =  v_loss + g_loss + fm_loss 
 
             generator_loss.backward()
 
@@ -179,14 +189,17 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
 
             total_vae_loss += v_loss.item()
             total_gan_loss += g_loss.item()
+            total_fm_loss += fm_loss.item()
             total_recon_loss += recon_loss.item()
             total_kl_loss += kl_loss.item()
             total_discriminator_loss += d_loss.item()
 
         print(
             f"Epoch [{epoch+1}/{config.num_epochs}] - "
+            f"x range:{recon_x.min():.4f} - {recon_x.max():.4f}"
             f"Avg VAE Loss: {total_vae_loss / len(dataloader):.4f}, "
             f"Avg GAN Loss: {total_gan_loss / len(dataloader):.4f}, "
+            f"Avg FM Loss: {total_fm_loss / len(dataloader):.4f},"
             f"Avg Recon Loss: {total_recon_loss / len(dataloader):.4f}, "
             f"Avg KL Loss: {total_kl_loss / len(dataloader):.4f}, "
             f"Avg Discriminator Loss: {total_discriminator_loss / len(dataloader):.4f}"
@@ -206,6 +219,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
                     "loss": {
                         "vae_loss": total_vae_loss / len(dataloader),
                         "gan_loss": total_gan_loss / len(dataloader),
+                        "fm_loss": total_fm_loss / len(dataloader),
                         "recon_loss": total_recon_loss / len(dataloader),
                         "kl_loss": total_kl_loss / len(dataloader),
                         "discriminator_loss": total_discriminator_loss / len(dataloader),

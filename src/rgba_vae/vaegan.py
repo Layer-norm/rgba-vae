@@ -34,7 +34,7 @@ class Discriminator(nn.Module):
         flat = features.view(features.size(0), -1)
         validity = self.fc(flat)
 
-        return validity
+        return validity, features
 
 
 class VAEGAN(nn.Module):
