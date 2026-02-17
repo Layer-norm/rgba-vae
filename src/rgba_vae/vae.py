@@ -87,9 +87,11 @@ class Decoder(nn.Module):
         decoder_input_dim = reversed_hidden_dims[0]
 
         for h_dim in reversed_hidden_dims[1:]:
+            self.decoder_layers.append(nn.Upsample(scale_factor=2, mode='bilinear'))
             self.decoder_layers.append(DoubleConv(decoder_input_dim, h_dim, dropout=dropout))
-            self.decoder_layers.append(nn.Upsample(scale_factor=2, mode='nearest'))
             decoder_input_dim = h_dim
+        
+        self.final_fc = nn.Linear(image_size, image_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc_decoder(x)
@@ -98,6 +100,8 @@ class Decoder(nn.Module):
 
         for layer in self.decoder_layers:
             x = layer(x)
+        
+        x = self.final_fc(x)
 
         return torch.sigmoid(x)
 
