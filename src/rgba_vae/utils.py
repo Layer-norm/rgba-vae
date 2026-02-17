@@ -23,7 +23,6 @@ def extract_base64_image_data(image_str: str) -> torch.Tensor:
     transform = T.Compose([
         T.Resize((64, 64)),
         T.ToTensor(),
-        T.Normalize((0.5, 0.5, 0.5, 0.5), (0.5, 0.5, 0.5, 0.5))
     ])
 
     return transform(image)

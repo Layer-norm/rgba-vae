@@ -17,7 +17,6 @@ class ToyTextImageDataset(Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((64, 64)),
             transforms.ToTensor(),
-            # transforms.Normalize([0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5])
         ])
         
         # 定义颜色和形状词汇库，用于随机组合
@@ -220,10 +219,8 @@ if __name__ == '__main__':
         text = sample['text']
         
         # 将张量转换回PIL图像以便显示
-        # 反归一化
-        image_unnormalized = image * 0.5 + 0.5
         # 转换为numpy数组并调整维度顺序 (C, H, W) -> (H, W, C)
-        image_np = image_unnormalized.permute(1, 2, 0).numpy()
+        image_np = image.permute(1, 2, 0).numpy()
         # 确保数值在[0, 1]范围内
         image_np = np.clip(image_np, 0, 1)
         
