@@ -43,11 +43,8 @@ def save_reconstructions(model: VAE, dataset: torch.utils.data.Dataset, config: 
 
         recon_x, _, _ = model(x)
 
-        def denormalize(tensor):
-            return tensor * 0.5 + 0.5  # 逆向标准化操作
-
-        original_images = denormalize(x.cpu())
-        reconstructed_images = denormalize(recon_x.cpu())
+        original_images = x.cpu()
+        reconstructed_images = recon_x.cpu()
 
         fig, axes = plt.subplots(2, 8, figsize=(16, 4))
         for i in range(8):

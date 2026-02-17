@@ -17,8 +17,7 @@ class ToyTextImageDataset(Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((64, 64)),
             transforms.ToTensor(),
-            # 对RGBA四个通道都进行标准化
-            transforms.Normalize([0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5])
+            # transforms.Normalize([0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5])
         ])
         
         # 定义颜色和形状词汇库，用于随机组合
