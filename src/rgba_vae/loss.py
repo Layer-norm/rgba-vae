@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: torch.Tensor) -> List[torch.Tensor]:
+def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: torch.Tensor) -> list[torch.Tensor]:
     # recon_loss = F.mse_loss(recon_x, x, reduction='sum')
     recon_loss = F.l1_loss(recon_x, x, reduction='sum') / x.shape[0]
 
