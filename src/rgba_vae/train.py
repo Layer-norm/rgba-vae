@@ -9,31 +9,8 @@ from tqdm import tqdm
 from .defaultconfig import DefaultConfig, VAEGANConfig
 from .vae import VAE
 from .vaegan import VAEGAN
+from .loss import vae_loss, adversarial_loss, feature_matching_loss, vision_alignment_loss
 
-from typing import List
-
-def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: torch.Tensor) -> List[torch.Tensor]:
-    # recon_loss = F.mse_loss(recon_x, x, reduction='sum')
-    recon_loss = F.l1_loss(recon_x, x, reduction='sum')
-
-    kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-
-    return recon_loss + kl_divergence, recon_loss, kl_divergence
-
-
-def adversarial_loss(
-        real_validity: torch.Tensor,
-        fake_validity: torch.Tensor
-    ) -> List[torch.Tensor]:
-
-
-    adversarial_loss = F.binary_cross_entropy(real_validity, torch.ones_like(real_validity)) + \
-               F.binary_cross_entropy(fake_validity, torch.zeros_like(fake_validity))
-
-    return adversarial_loss
-
-def feature_matching_loss(real_features: torch.Tensor, fake_features: torch.Tensor) -> torch.Tensor:
-    return F.mse_loss(real_features, fake_features)
 
 def save_reconstructions(model: VAE, dataset: torch.utils.data.Dataset, config: DefaultConfig, epoch: int):
     model.eval()
