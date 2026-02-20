@@ -4,12 +4,11 @@ import torch.nn.functional as F
 
 def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: torch.Tensor) -> List[torch.Tensor]:
     # recon_loss = F.mse_loss(recon_x, x, reduction='sum')
-    recon_loss = F.l1_loss(recon_x, x, reduction='sum')
+    recon_loss = F.l1_loss(recon_x, x, reduction='sum') / x.shape[0]
 
-    kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+    kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) / x.shape[0]
 
     return recon_loss + kl_divergence, recon_loss, kl_divergence
-
 
 def adversarial_loss(
         real_validity: torch.Tensor,
