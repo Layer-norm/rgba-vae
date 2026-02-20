@@ -91,7 +91,10 @@ class Decoder(nn.Module):
             self.decoder_layers.append(DoubleConv(decoder_input_dim, h_dim, dropout=dropout))
             decoder_input_dim = h_dim
         
-        self.final_fc = nn.Linear(image_size, image_size)
+        self.final_fc = nn.Sequential(
+            nn.Linear(image_size, image_size),
+            nn.Sigmoid()
+        )
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc_decoder(x)
@@ -103,7 +106,7 @@ class Decoder(nn.Module):
         
         x = self.final_fc(x)
 
-        return torch.sigmoid(x)
+        return x
 
 
 class VAE(nn.Module):

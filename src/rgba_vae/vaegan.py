@@ -13,15 +13,14 @@ class Discriminator(nn.Module):
         self.feature_size = image_size // (2 ** 3)
 
         self.conv = nn.Sequential(
-            # Input: (batch, channels, 32, 32)
-            nn.Conv2d(channels, 32, kernel_size=4, stride=2, padding=1),  # 16x16
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),        # 8x8
+            nn.Conv2d(channels, 32, kernel_size=4, stride=2, padding=1),  
+            nn.Mish(inplace=True),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),        
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),       # 4x4
+            nn.Mish(inplace=True),
+            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),       
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Mish(inplace=True),
         )
         
         self.fc = nn.Sequential(
