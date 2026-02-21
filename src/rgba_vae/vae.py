@@ -2,10 +2,12 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from typing import Optional, List
-
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, mid_channels: Optional[int] = None, dropout: float = 0.1) -> None:
+    def __init__(self, 
+                 in_channels: int, 
+                 out_channels: int, 
+                 mid_channels: int | None = None, 
+                 dropout: float = 0.1) -> None:
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
@@ -28,7 +30,7 @@ class Encoder(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
-                 hidden_dims: List[int], 
+                 hidden_dims: list[int], 
                  latent_dim:int, 
                  dropout: float = 0.1
         ) -> None:
@@ -69,7 +71,7 @@ class Decoder(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
-                 hidden_dims: List[int], 
+                 hidden_dims: list[int], 
                  latent_dim: int, 
                  dropout: float = 0.1
         ) -> None:
@@ -113,7 +115,7 @@ class VAE(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
-                 hidden_dims: List[int], 
+                 hidden_dims: list[int], 
                  latent_dim: int, 
                  dropout: float = 0.1
         ) -> None:

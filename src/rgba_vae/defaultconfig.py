@@ -2,12 +2,10 @@ import torch
 from dataclasses import dataclass, field
 
 
-from typing import List
-
 @dataclass
 class DefaultConfig:
     # Model architecture
-    hidden_dims: List[int] = field(default_factory=lambda: [64, 128, 256, 512])
+    hidden_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
     in_channels: int = 4  # 4 channels for RGBA images
 
@@ -27,7 +25,7 @@ class DefaultConfig:
 @dataclass
 class VAEGANConfig:
     # Model architecture
-    hidden_dims: List[int] = field(default_factory=lambda: [64, 128, 256, 512])
+    hidden_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
     in_channels: int = 4  # 4 channels for RGBA images
 
@@ -51,7 +49,7 @@ class VAEGANConfig:
 @dataclass
 class VAVAEConfig:
     # Model architecture
-    hidden_dims: List[int] = field(default_factory=lambda: [64, 128, 256, 512])
+    hidden_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
     vf_feature_dim: int = 768  # Dimension of dinov2-base
     vf_model_name: str="facebook/dinov2-base"

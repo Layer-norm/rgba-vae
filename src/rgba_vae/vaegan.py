@@ -4,8 +4,6 @@ import torch.nn.functional as F
 
 from .vae import VAE
 
-from typing import Optional, List
-
 class Discriminator(nn.Module):
     def __init__(self, channels: int=4, image_size: int=64):
         super().__init__()
@@ -40,7 +38,7 @@ class VAEGAN(nn.Module):
     def __init__(self, 
                  in_channels: int, 
                  image_size: int, 
-                 hidden_dims: List[int], 
+                 hidden_dims: list[int], 
                  latent_dim: int, 
                  dropout: float = 0.1
         ) -> None:
