@@ -64,8 +64,8 @@ class VAVAEConfig:
 
     optimizer: str = "adamw"
 
-    learning_rate: float = 1e-3
-    align_learning_rate: float = 1e-4
+    learning_rate: float = 2e-4
+    align_learning_rate: float = 1e-3
 
     num_epochs: int = 1000
     batch_size: int = 16
