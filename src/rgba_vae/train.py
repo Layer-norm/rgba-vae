@@ -223,9 +223,17 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
     vae_optimizer = torch.optim.AdamW(vae_model.vae.parameters(), lr=config.learning_rate)
     vision_align_optimizer = torch.optim.AdamW(vae_model.visionalignment.parameters(), lr=config.align_learning_rate)
 
+    if config.use_deterministic:
+        discriminator_optimizer = torch.optim.AdamW(vae_model.discriminator.parameters(), lr=config.gan_learning_rate)
+
     for epoch in range(config.num_epochs):
         tqdm.write(f"Epoch {epoch+1}/{config.num_epochs}")
         vae_model.train()
+
+        if config.use_deterministic:
+            total_gan_loss = 0
+            total_fm_loss = 0
+            total_discriminator_loss = 0
 
         total_loss = 0
         total_recon_loss = 0
@@ -237,6 +245,24 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
         for batch, _ in progress_bar:
             x = batch.to(config.device)
 
+            # if discriminator avaliable
+            if config.use_deterministic:
+                # Discriminator training
+                discriminator_optimizer.zero_grad()
+
+                real_validity, _ = vae_model.discriminator(x)
+
+                with torch.no_grad():
+                    recon_x, _, _ = vae_model(x)
+                fake_validity, _ = vae_model.discriminator(recon_x.detach())
+
+                d_loss = adversarial_loss(real_validity, fake_validity)
+                d_loss.backward()
+                discriminator_optimizer.step()
+
+                total_discriminator_loss += d_loss.item()
+
+            # vae and vision alignment
             vae_optimizer.zero_grad()
             vision_align_optimizer.zero_grad()
 
@@ -244,7 +270,7 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
 
             _, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
-            # alignment loss
+            # vision alignment loss
             with torch.no_grad():
                 x_rgb = x[:, :3, :, :]
                 vf_outputs = vf_model(x_rgb)
@@ -256,7 +282,23 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
 
             loss = config.beta_recon * recon_loss + config.beta_kl * kl_loss + config.beta_vf * vf_loss
 
-            loss.backward()
+            if config.use_deterministic:
+                _, real_features = vae_model.discriminator(x)
+                fake_validity_gen, fake_features_gen = vae_model.discriminator(recon_x)
+
+                # GAN loss
+                g_loss = F.binary_cross_entropy(fake_validity_gen, torch.ones_like(fake_validity_gen))
+
+                # Feature matching loss
+                fm_loss = feature_matching_loss(real_features, fake_features_gen)
+
+                generator_loss = loss + g_loss + fm_loss
+                generator_loss.backward()
+
+                total_gan_loss += g_loss.item()
+                total_fm_loss += fm_loss.item()
+            else:
+                loss.backward()
 
             vae_optimizer.step()
             vision_align_optimizer.step()
@@ -265,34 +307,54 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
             total_recon_loss += recon_loss.item()
             total_kl_loss += kl_loss.item()
             total_vf_loss += vf_loss.item()
-
-        print(
-            f"Epoch [{epoch+1}/{config.num_epochs}] - "
-            f"Avg Loss: {total_loss / len(dataloader):.4f}, "
-            f"Avg Recon Loss: {total_recon_loss / len(dataloader):.4f}, "
-            f"Avg KL Loss: {total_kl_loss / len(dataloader):.4f}, "
-            f"Avg VF Loss: {total_vf_loss / len(dataloader):.4f}"
-        )
+        
+        # print training log
+        if config.use_deterministic:
+            print(
+                f"Epoch [{epoch+1}/{config.num_epochs}] - "
+                f"Avg Loss: {total_loss / len(dataloader):.4f}, "
+                f"Avg Recon Loss: {total_recon_loss / len(dataloader):.4f}, "
+                f"Avg KL Loss: {total_kl_loss / len(dataloader):.4f}, "
+                f"Avg VF Loss: {total_vf_loss / len(dataloader):.4f}, "
+                f"Avg GAN Loss: {total_gan_loss / len(dataloader):.4f}, "
+                f"Avg FM Loss: {total_fm_loss / len(dataloader):.4f}, "
+                f"Avg Discriminator Loss: {total_discriminator_loss / len(dataloader):.4f}"
+            )
+        else:
+            print(
+                f"Epoch [{epoch+1}/{config.num_epochs}] - "
+                f"Avg Loss: {total_loss / len(dataloader):.4f}, "
+                f"Avg Recon Loss: {total_recon_loss / len(dataloader):.4f}, "
+                f"Avg KL Loss: {total_kl_loss / len(dataloader):.4f}, "
+                f"Avg VF Loss: {total_vf_loss / len(dataloader):.4f}"
+            )
+            
 
         # save checkpoint
         if (epoch + 1) % config.save_every_n_epochs == 0 or epoch == config.num_epochs - 1:
             checkpoint_path = f"{config.checkpoint_dir}/vavae_epoch_{epoch+1}.pth"
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "vae_state_dict": vae_model.vae.state_dict(),
-                    "vision_align_state_dict": vae_model.visionalignment.state_dict(),
-                    "vae_optimizer_state_dict": vae_optimizer.state_dict(),
-                    "vision_align_optimizer_state_dict": vision_align_optimizer.state_dict(),
-                    "loss": {
-                        "total_loss": total_loss / len(dataloader),
-                        "recon_loss": total_recon_loss / len(dataloader),
-                        "kl_loss": total_kl_loss / len(dataloader),
-                        "vf_loss": total_vf_loss / len(dataloader),
-                    },
+            state_dict = {
+                "epoch": epoch,
+                "vae_state_dict": vae_model.vae.state_dict(),
+                "vision_align_state_dict": vae_model.visionalignment.state_dict(),
+                "vae_optimizer_state_dict": vae_optimizer.state_dict(),
+                "vision_align_optimizer_state_dict": vision_align_optimizer.state_dict(),
+                "loss": {
+                    "total_loss": total_loss / len(dataloader),
+                    "recon_loss": total_recon_loss / len(dataloader),
+                    "kl_loss": total_kl_loss / len(dataloader),
+                    "vf_loss": total_vf_loss / len(dataloader),
                 },
-                checkpoint_path,
-            )
+            }
+
+            if config.use_deterministic:
+                state_dict["discriminator_state_dict"] = vae_model.discriminator.state_dict()
+                state_dict["discriminator_optimizer_state_dict"] = discriminator_optimizer.state_dict()
+                state_dict["loss"]["gan_loss"] = total_gan_loss / len(dataloader)
+                state_dict["loss"]["fm_loss"] = total_fm_loss / len(dataloader)
+                state_dict["loss"]["discriminator_loss"] = total_discriminator_loss / len(dataloader)
+
+            torch.save(state_dict, checkpoint_path)
             print(f"Checkpoint saved at {checkpoint_path}")
 
             save_reconstructions(vae_model.vae, dataset, config, epoch + 1)

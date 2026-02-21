@@ -37,7 +37,7 @@ class VAEGANConfig:
     optimizer: str = "adamw"
 
     learning_rate: float = 1e-3
-    gan_learning_rate: float = 1e-4
+    gan_learning_rate: float = 1e-3
 
     num_epochs: int = 1000
     batch_size: int = 16
@@ -66,6 +66,7 @@ class VAVAEConfig:
 
     learning_rate: float = 2e-4
     align_learning_rate: float = 1e-3
+    gan_learning_rate: float = 1e-3
 
     num_epochs: int = 1000
     batch_size: int = 16
