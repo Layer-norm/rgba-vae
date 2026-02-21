@@ -2,6 +2,8 @@ import torch
 from dataclasses import dataclass, field
 
 
+# from typing import List
+
 @dataclass
 class DefaultConfig:
     # Model architecture
