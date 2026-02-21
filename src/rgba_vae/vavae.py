@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .vae import VAE
-
-from transformers import AutoModel
+from .vaegan import Discriminator
 
 class VisionFoundationAlignment(nn.Module):
     def __init__(self, 
@@ -14,14 +13,20 @@ class VisionFoundationAlignment(nn.Module):
         ) -> None:
         super().__init__()
 
+        self.latent_dim = latent_dim
+        self.vf_feature_dim = vf_feature_dim
         self.margin = margin
 
         self.proj= nn.Linear(latent_dim, vf_feature_dim)
 
         self.cos_sim = nn.CosineSimilarity(dim=1)
     
-    def forward(self, z: torch.Tensor, vf_features: torch.Tensor):
+    def forward(self, mu: torch.Tensor, log_var: torch.Tensor, vf_features: torch.Tensor):
 
+        std = torch.exp(0.5 * log_var)
+        eps = torch.randn_like(std)
+        z = mu + eps * std
+    
         z_projected = self.proj(z)
 
         z_projected = F.normalize(z_projected, p=2, dim=1)
@@ -44,6 +49,8 @@ class VAVAE(nn.Module):
         super().__init__()
         self.vae = VAE(in_channels, image_size, hidden_dims, latent_dim, dropout)
         self.visionalignment = VisionFoundationAlignment(latent_dim, vf_feature_dim)
+
+        self.discriminator = Discriminator(in_channels, image_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         mu, log_var = self.vae.encode(x)

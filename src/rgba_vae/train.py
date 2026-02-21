@@ -110,7 +110,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
     
     encoder_optimizer = torch.optim.AdamW(vaegan_model.vae.encode.parameters(), lr=config.learning_rate)
     decoder_optimizer = torch.optim.AdamW(vaegan_model.vae.decode.parameters(), lr=config.learning_rate)
-    discriminator_optimizer = torch.optim.AdamW(vaegan_model.discriminator.parameters(), lr=config.learning_rate)
+    discriminator_optimizer = torch.optim.AdamW(vaegan_model.discriminator.parameters(), lr=config.gan_learning_rate)
 
     for epoch in range(config.num_epochs):
         tqdm.write(f"Epoch {epoch+1}/{config.num_epochs}")
@@ -216,11 +216,12 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
     vae_model.to(config.device)
 
     vf_model = AutoModel.from_pretrained(config.vf_model_name)
+    vf_model.eval().to(config.device)
 
     dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=4)
 
     vae_optimizer = torch.optim.AdamW(vae_model.vae.parameters(), lr=config.learning_rate)
-    vision_align_optimizer = torch.optim.AdamW(vae_model.visionalignment.parameters(), lr=config.learning_rate)
+    vision_align_optimizer = torch.optim.AdamW(vae_model.visionalignment.parameters(), lr=config.align_learning_rate)
 
     for epoch in range(config.num_epochs):
         tqdm.write(f"Epoch {epoch+1}/{config.num_epochs}")
@@ -245,9 +246,13 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
 
             # alignment loss
             with torch.no_grad():
-                vf_features = vf_model(x)
+                x_rgb = x[:, :3, :, :]
+                vf_outputs = vf_model(x_rgb)
+                vf_features = vf_outputs.last_hidden_state.mean(dim=1)
             
-            vf_loss = vision_alignment_loss(recon_x, vf_features)
+            
+            vf_sim = vae_model.visionalignment(mu, log_var, vf_features)
+            vf_loss = vision_alignment_loss(vf_sim)
 
             loss = config.beta_recon * recon_loss + config.beta_kl * kl_loss + config.beta_vf * vf_loss
 
@@ -262,7 +267,7 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
             total_vf_loss += vf_loss.item()
 
         print(
-            f"Epoch [{epoch+1}/{config['num_epochs']}] - "
+            f"Epoch [{epoch+1}/{config.num_epochs}] - "
             f"Avg Loss: {total_loss / len(dataloader):.4f}, "
             f"Avg Recon Loss: {total_recon_loss / len(dataloader):.4f}, "
             f"Avg KL Loss: {total_kl_loss / len(dataloader):.4f}, "
