@@ -23,7 +23,6 @@ class DefaultConfig:
 
     # Data preprocessing
     image_size: int = 64
-    patch_size: int = 8
 
 @dataclass
 class VAEGANConfig:
@@ -35,11 +34,11 @@ class VAEGANConfig:
     # Training parameters
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     
-    encoder_optimizer: str = "adamw"
-    decoder_optimizer: str = "adamw"
-    discriminator_optimizer: str = "adamw"
+    optimizer: str = "adamw"
 
     learning_rate: float = 1e-3
+    gan_learning_rate: float = 1e-4
+
     num_epochs: int = 1000
     batch_size: int = 16
     save_every_n_epochs: int = 10
@@ -48,7 +47,6 @@ class VAEGANConfig:
 
     # Data preprocessing
     image_size: int = 64
-    patch_size: int = 8
 
 @dataclass
 class VAVAEConfig:
@@ -61,8 +59,14 @@ class VAVAEConfig:
 
     # Training parameters
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+
+    use_deterministic: bool = False
+
     optimizer: str = "adamw"
+
     learning_rate: float = 1e-3
+    align_learning_rate: float = 1e-4
+
     num_epochs: int = 1000
     batch_size: int = 16
     save_every_n_epochs: int = 10
@@ -76,4 +80,3 @@ class VAVAEConfig:
 
     # Data preprocessing
     image_size: int = 64
-    patch_size: int = 8
