@@ -4,7 +4,7 @@ from rgba_vae import JSONLBase64Dataset
 
 def main():
     # 1. 加载配置
-    config = VAEGANConfig()
+    config = VAEGANConfig(image_size=128)
     
     # 2. 创建数据集
     dataset = JSONLBase64Dataset(
