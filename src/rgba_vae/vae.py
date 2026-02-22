@@ -25,6 +25,18 @@ class DoubleConv(nn.Module):
         return self.double_conv(x)
 
 
+class ResidualBlock(nn.Module):
+    def __init__(self, channels: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.conv1 = DoubleConv(channels, channels, dropout=dropout)
+        self.conv2 = DoubleConv(channels, channels, dropout=dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        residual = x
+        out = self.conv1(x)
+        out = self.conv2(out)
+        return out + residual
+
 # Encoder: q(z|x)
 class Encoder(nn.Module):
     def __init__(self, 
@@ -32,6 +44,8 @@ class Encoder(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim:int, 
+                 use_refinement: bool,
+                 refinement_blocks: int = 1,
                  dropout: float = 0.1
         ) -> None:
         super().__init__()
@@ -48,6 +62,11 @@ class Encoder(nn.Module):
             self.encoder_layers.append(DoubleConv(input_dim, h_dim, dropout=dropout))
             self.encoder_layers.append(nn.MaxPool2d(2))
             input_dim = h_dim
+
+        # refinement blocks
+        if use_refinement:
+            for _ in range(refinement_blocks):
+                self.encoder_layers.append(ResidualBlock(self.hidden_dim, dropout=0.0))
         
         final_feature_map_size = image_size // (2 ** len(hidden_dims))
         self.flattened_dim = int(hidden_dims[-1] * (final_feature_map_size ** 2))
@@ -72,7 +91,9 @@ class Decoder(nn.Module):
                  in_channels: int, 
                  image_size: int, 
                  hidden_dims: list[int], 
-                 latent_dim: int, 
+                 latent_dim: int,
+                 use_refinement: bool,
+                 refinement_blocks: int = 1, 
                  dropout: float = 0.1
         ) -> None:
         super().__init__()
@@ -86,6 +107,12 @@ class Decoder(nn.Module):
         #decoder
         self.fc_decoder = nn.Linear(latent_dim, self.flattened_dim)
         self.decoder_layers = nn.ModuleList()
+
+        # decoder layers
+        if use_refinement:
+            for _ in range(refinement_blocks):
+                self.decoder_layers.append(ResidualBlock(self.hidden_dim, dropout=0.0))
+
         decoder_input_dim = reversed_hidden_dims[0]
 
         for h_dim in reversed_hidden_dims[1:]:
@@ -117,6 +144,8 @@ class VAE(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim: int, 
+                 use_refinement: bool,
+                 refinement_blocks: int,
                  dropout: float = 0.1
         ) -> None:
 
@@ -125,10 +154,29 @@ class VAE(nn.Module):
         self.image_size = image_size
         self.hidden_dims = hidden_dims
         self.latent_dim = latent_dim
+        self.use_refinement = use_refinement
+        self.refinement_blocks = refinement_blocks
         self.dropout = dropout
 
-        self.encode = Encoder(self.in_channels, self.image_size, self.hidden_dims, self.latent_dim, self.dropout)
-        self.decode = Decoder(self.in_channels, self.image_size, self.hidden_dims, self.latent_dim, self.dropout)
+        self.encode = Encoder(
+            self.in_channels, 
+            self.image_size, 
+            self.hidden_dims, 
+            self.latent_dim, 
+            self.use_refinement, 
+            self.refinement_blocks, 
+            self.dropout
+        )
+
+        self.decode = Decoder(
+            self.in_channels, 
+            self.image_size, 
+            self.hidden_dims, 
+            self.latent_dim, 
+            self.use_refinement, 
+            self.refinement_blocks, 
+            self.dropout
+        )
     
     def reparameterize(self, mu: torch.Tensor, log_var: torch.Tensor) -> torch.Tensor:
         std = torch.exp(0.5 * log_var)

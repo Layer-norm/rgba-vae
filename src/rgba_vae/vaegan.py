@@ -40,10 +40,12 @@ class VAEGAN(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim: int, 
+                 use_refinement: bool,
+                 refinement_blocks: int = 2,
                  dropout: float = 0.1
         ) -> None:
         super().__init__()
-        self.vae = VAE(in_channels, image_size, hidden_dims, latent_dim, dropout)
+        self.vae = VAE(in_channels, image_size, hidden_dims, latent_dim, use_refinement, refinement_blocks, dropout)
         self.discriminator = Discriminator(in_channels, image_size)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
