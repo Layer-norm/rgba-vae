@@ -1,4 +1,3 @@
-# handle base64 encoded image strings
 import torch
 from torchvision import transforms as T
 from torch.utils.data import Dataset
@@ -9,7 +8,7 @@ import base64
 
 from PIL import Image
 
-def extract_base64_image_data(image_str: str) -> torch.Tensor:
+def extract_base64_image_data(image_str: str) -> Image.Image:
     """
     Extract image data from a base64 encoded string.
     """
@@ -20,21 +19,19 @@ def extract_base64_image_data(image_str: str) -> torch.Tensor:
 
     image = Image.open(io.BytesIO(image_data)).convert("RGBA")
 
-    transform = T.Compose([
-        T.Resize((64, 64)),
-        T.ToTensor(),
-    ])
-
-    return transform(image)
+    return image
 
 class JSONLBase64Dataset(Dataset):
     """
     Extract image data from a Jsonl file.
     """
 
-    def __init__(self, jsonl_file: str, transform=None):
+    def __init__(self, jsonl_file: str, image_sie: int = 64, method: str = 'nearest'):
         self.jsonl_file = jsonl_file
-        self.transform = transform
+        self.transform = T.Compose([
+            T.Resize((image_sie, image_sie), T.InterpolationMode[method.upper()]),
+            T.ToTensor()
+        ])
         self.data = []
 
         with open(jsonl_file, "r", encoding="utf-8") as f:
@@ -49,5 +46,6 @@ class JSONLBase64Dataset(Dataset):
         base64_str = self.data[idx]
 
         image = extract_base64_image_data(base64_str)
+        image = self.transform(image)
 
         return image, 0
