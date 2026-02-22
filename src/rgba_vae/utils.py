@@ -26,10 +26,10 @@ class JSONLBase64Dataset(Dataset):
     Extract image data from a Jsonl file.
     """
 
-    def __init__(self, jsonl_file: str, image_sie: int = 64, method: str = 'nearest'):
+    def __init__(self, jsonl_file: str, image_size: int = 64, method: str = 'nearest'):
         self.jsonl_file = jsonl_file
         self.transform = T.Compose([
-            T.Resize((image_sie, image_sie), T.InterpolationMode[method.upper()]),
+            T.Resize((image_size, image_size), T.InterpolationMode[method.upper()]),
             T.ToTensor()
         ])
         self.data = []
