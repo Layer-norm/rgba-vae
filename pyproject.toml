@@ -1,6 +1,6 @@
 [project]
 name = "rgba-vae"
-version = "0.1.0"
+version = "0.2.0"
 description = "A VAE model for RGBA images"
 readme = "README.md"
 authors = [
