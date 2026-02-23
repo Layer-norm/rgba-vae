@@ -7,8 +7,6 @@ class DefaultConfig:
     # Model architecture
     hidden_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
-    use_refinement: bool = False
-    refinement_blocks: int = 1
     in_channels: int = 4  # 4 channels for RGBA images
 
     # Training parameters
@@ -29,8 +27,6 @@ class VAEGANConfig:
     # Model architecture
     hidden_dims: list[int] = field(default_factory=lambda: [64, 128, 256, 512])
     latent_dim: int = 256
-    use_refinement: bool = False
-    refinement_blocks: int = 1
     in_channels: int = 4  # 4 channels for RGBA images
 
     # Training parameters
@@ -57,8 +53,6 @@ class VAVAEConfig:
     latent_dim: int = 256
     vf_feature_dim: int = 768  # Dimension of dinov2-base
     vf_model_name: str="facebook/dinov2-base"
-    use_refinement: bool = False
-    refinement_blocks: int = 1
     in_channels: int = 4  # 4 channels for RGBA images
 
     # Training parameters

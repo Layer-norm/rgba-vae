@@ -2,40 +2,32 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-class DoubleConv(nn.Module):
-    def __init__(self, 
-                 in_channels: int, 
-                 out_channels: int, 
-                 mid_channels: int | None = None, 
-                 dropout: float = 0.1) -> None:
+from .modules.ConNext import ConvNextBlock, GRN
+
+class DownBlock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.1) -> None:
         super().__init__()
-        if not mid_channels:
-            mid_channels = out_channels
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_channels),
-            nn.SiLU(inplace=True),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.SiLU(inplace=True),
-            nn.Dropout2d(dropout)
-        )
+        self.conv_next1 = ConvNextBlock(in_channels, out_channels, dropout)
+        self.conv_next2 = ConvNextBlock(out_channels, out_channels, dropout)
+        self.downsample = nn.MaxPool2d(2)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.conv_next1(x)
+        x = self.conv_next2(x)
+        x = self.downsample(x)
+        return x
+    
+class UpBlock(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.1) -> None:
+        super().__init__()
+        self.conv_next1 = ConvNextBlock(in_channels, out_channels, dropout)
+        self.conv_next2 = ConvNextBlock(out_channels, out_channels, dropout)
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.double_conv(x)
-
-
-class ResidualBlock(nn.Module):
-    def __init__(self, channels: int, dropout: float = 0.1) -> None:
-        super().__init__()
-        self.conv1 = DoubleConv(channels, channels, dropout=dropout)
-        self.conv2 = DoubleConv(channels, channels, dropout=dropout)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        residual = x
-        out = self.conv1(x)
-        out = self.conv2(out)
-        return out + residual
+        x = self.upsample(x)
+        x = self.conv_next1(x)
+        x = self.conv_next2(x)
+        return x
 
 # Encoder: q(z|x)
 class Encoder(nn.Module):
@@ -44,8 +36,6 @@ class Encoder(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim:int, 
-                 use_refinement: bool,
-                 refinement_blocks: int = 1,
                  dropout: float = 0.1
         ) -> None:
         super().__init__()
@@ -59,14 +49,9 @@ class Encoder(nn.Module):
         input_dim = in_channels
         
         for h_dim in hidden_dims:
-            self.encoder_layers.append(DoubleConv(input_dim, h_dim, dropout=dropout))
-            self.encoder_layers.append(nn.MaxPool2d(2))
+            self.encoder_layers.append(DownBlock(input_dim, h_dim, dropout=dropout))
             input_dim = h_dim
 
-        # refinement blocks
-        if use_refinement:
-            for _ in range(refinement_blocks):
-                self.encoder_layers.append(ResidualBlock(self.hidden_dim, dropout=0.0))
         
         final_feature_map_size = image_size // (2 ** len(hidden_dims))
         self.flattened_dim = int(hidden_dims[-1] * (final_feature_map_size ** 2))
@@ -92,8 +77,7 @@ class Decoder(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim: int,
-                 use_refinement: bool,
-                 refinement_blocks: int = 1, 
+                 num_groups: int,
                  dropout: float = 0.1
         ) -> None:
         super().__init__()
@@ -108,16 +92,11 @@ class Decoder(nn.Module):
         self.fc_decoder = nn.Linear(latent_dim, self.flattened_dim)
         self.decoder_layers = nn.ModuleList()
 
-        # decoder layers
-        if use_refinement:
-            for _ in range(refinement_blocks):
-                self.decoder_layers.append(ResidualBlock(self.hidden_dim, dropout=0.0))
 
         decoder_input_dim = reversed_hidden_dims[0]
 
         for h_dim in reversed_hidden_dims[1:]:
-            self.decoder_layers.append(nn.Upsample(scale_factor=2, mode='bilinear'))
-            self.decoder_layers.append(DoubleConv(decoder_input_dim, h_dim, dropout=dropout))
+            self.decoder_layers.append(UpBlock(decoder_input_dim, h_dim, dropout=dropout))
             decoder_input_dim = h_dim
         
         self.final_fc = nn.Sequential(
@@ -144,8 +123,6 @@ class VAE(nn.Module):
                  image_size: int, 
                  hidden_dims: list[int], 
                  latent_dim: int, 
-                 use_refinement: bool,
-                 refinement_blocks: int,
                  dropout: float = 0.1
         ) -> None:
 
@@ -154,8 +131,6 @@ class VAE(nn.Module):
         self.image_size = image_size
         self.hidden_dims = hidden_dims
         self.latent_dim = latent_dim
-        self.use_refinement = use_refinement
-        self.refinement_blocks = refinement_blocks
         self.dropout = dropout
 
         self.encode = Encoder(
@@ -163,8 +138,6 @@ class VAE(nn.Module):
             self.image_size, 
             self.hidden_dims, 
             self.latent_dim, 
-            self.use_refinement, 
-            self.refinement_blocks, 
             self.dropout
         )
 
@@ -173,8 +146,6 @@ class VAE(nn.Module):
             self.image_size, 
             self.hidden_dims, 
             self.latent_dim, 
-            self.use_refinement, 
-            self.refinement_blocks, 
             self.dropout
         )
     
