@@ -9,6 +9,7 @@ def main():
     # 2. 创建数据集
     dataset = JSONLBase64Dataset(
         jsonl_file="I:/myproject2026/rgba-vae/cover/dataset_0000.jsonl_slim.jsonl",
+        image_size=128
     )
     
     # 3. 初始化VAE模型
