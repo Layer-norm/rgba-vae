@@ -4,31 +4,46 @@ import torch.nn.functional as F
 
 from .vae import VAE
 
+class SpectralNormConv2d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super().__init__()
+        self.conv = nn.utils.spectral_norm(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
 class Discriminator(nn.Module):
     def __init__(self, channels: int=4, image_size: int=64):
         super().__init__()
         
-        self.feature_size = image_size // (2 ** 3)
+        self.feature_size = image_size // (2 ** 4)
 
         self.conv = nn.Sequential(
-            nn.Conv2d(channels, 32, kernel_size=4, stride=2, padding=1),  
-            nn.Mish(inplace=True),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),        
-            nn.BatchNorm2d(64),
-            nn.Mish(inplace=True),
-            nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1),       
-            nn.BatchNorm2d(128),
-            nn.Mish(inplace=True),
+            SpectralNormConv2d(channels, 32, kernel_size=4, stride=2, padding=1),  
+            nn.SiLU(inplace=True),
+            SpectralNormConv2d(32, 64, kernel_size=4, stride=2, padding=1),        
+            nn.SiLU(inplace=True),
+            SpectralNormConv2d(64, 128, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(inplace=True),
+            SpectralNormConv2d(128, 256, kernel_size=4, stride=2, padding=1),
+            nn.SiLU(inplace=True)
         )
         
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+
         self.fc = nn.Sequential(
-            nn.Linear(128 * self.feature_size * self.feature_size, 1),
+            nn.Linear(256, 128),
+            nn.SiLU(inplace=True),
+            nn.Linear(128, 1),
             nn.Sigmoid()
         )
 
     def forward(self, x):
         features = self.conv(x)
-        flat = features.view(features.size(0), -1)
+        pooled_features = self.pool(features)
+        flat = pooled_features.view(pooled_features.size(0), -1)
         validity = self.fc(flat)
 
         return validity, features
