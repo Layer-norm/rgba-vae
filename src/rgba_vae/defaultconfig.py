@@ -13,12 +13,16 @@ class DefaultConfig:
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     optimizer: str = "adamw"
 
-    learning_rate: float = 1e-3
-    num_epochs: int = 1000
+    learning_rate: float = 2e-4
+    num_epochs: int = 500
     batch_size: int = 16
     save_every_n_epochs: int = 10
     dropout: float = 0.1
     checkpoint_dir: str = "checkpoints"
+
+    # Loss weights
+    beta_recon: float = 1.0
+    beta_kl: float = 0.01
 
     # Data preprocessing
     image_size: int = 64
@@ -27,6 +31,10 @@ class DefaultConfig:
 class VAEGANConfig(DefaultConfig):
     # Traning parameters specific to VAE-GAN
     gan_learning_rate: float = 1e-3
+
+    # Loss weights    
+    beta_g: float = 1.0
+    beta_fm: float = 1.0
 
 @dataclass
 class VAVAEConfig(DefaultConfig):
@@ -39,9 +47,10 @@ class VAVAEConfig(DefaultConfig):
 
     # Training parameters specific to VAVAE
     align_learning_rate: float = 1e-3
-    gan_learning_rate: float = 1e-3 # if use adversarial training for visual features
+    gan_learning_rate: float = 1e-3 # if use adversarial training
 
     # Loss weights
-    beta_recon: float = 1.0
-    beta_kl: float = 0.01
     beta_vf: float = 1.0
+
+    beta_g: float = 1.0 # if use adversarial training
+    beta_fm: float = 1.0 # if use adversarial training
