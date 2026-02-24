@@ -40,7 +40,7 @@ def save_reconstructions(model: VAE, dataset: torch.utils.data.Dataset, config: 
             axes[1, i].set_title("Reconstructed")
 
         plt.tight_layout()
-        plt.savefig(f"reconstructions/reconstruction_epoch_{epoch}.png")
+        plt.savefig(f"reconstructions/reconstruction_epoch_{epoch}.png", transparent=True)
         plt.close()
 
 
@@ -74,7 +74,9 @@ def train_vae(vae_model: VAE, dataset: torch.utils.data.Dataset, config: Default
             optimizer.zero_grad()
 
             recon_x, mu, log_var = vae_model(x)
-            loss, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
+
+            recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
+            loss = config.beta_recon * recon_loss + config.beta_kl * kl_loss
             loss.backward()
 
 
@@ -147,7 +149,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
 
             recon_x, mu, log_var = vaegan_model(x)
 
-            v_loss, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
+            recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
             _, real_features = vaegan_model.discriminator(x)
 
@@ -160,7 +162,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
             # feature matching loss
             fm_loss = feature_matching_loss(real_features, fake_features_gen)
 
-            generator_loss =  v_loss + g_loss + fm_loss 
+            generator_loss =  config.beta_recon * recon_loss + config.beta_kl * kl_loss + config.beta_g*g_loss + config.beta_fm*fm_loss 
 
             generator_loss.backward()
 
@@ -268,7 +270,7 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
 
             recon_x, mu, log_var = vae_model(x)
 
-            _, recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
+            recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
             # vision alignment loss
             with torch.no_grad():
@@ -292,7 +294,7 @@ def train_vavae(vae_model: VAVAE, dataset: torch.utils.data.Dataset, config: VAV
                 # Feature matching loss
                 fm_loss = feature_matching_loss(real_features, fake_features_gen)
 
-                generator_loss = loss + g_loss + fm_loss
+                generator_loss = loss + config.beta_g*g_loss + config.beta_fm*fm_loss
                 generator_loss.backward()
 
                 total_gan_loss += g_loss.item()

@@ -8,7 +8,7 @@ def vae_loss(recon_x: torch.Tensor, x: torch.Tensor, mu: torch.Tensor, log_var: 
 
     kl_divergence = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp()) / x.shape[0]
 
-    return recon_loss + kl_divergence, recon_loss, kl_divergence
+    return recon_loss, kl_divergence
 
 def adversarial_loss(
         real_validity: torch.Tensor,
