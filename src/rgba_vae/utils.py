@@ -26,21 +26,27 @@ class JSONLBase64Dataset(Dataset):
     Extract image data from a Jsonl file.
     """
 
-    def __init__(self, jsonl_file: str, image_size: int = 64, method: str = 'nearest'):
-        self.jsonl_file = jsonl_file
+    def __init__(self, jsonl_files: list[str]|str, image_size: int = 64, method: str = 'nearest'):
+        self.jsonl_files = [jsonl_files] if isinstance(jsonl_files, str) else jsonl_files
         self.transform = T.Compose([
             T.Resize((image_size, image_size), T.InterpolationMode[method.upper()]),
             T.ToTensor()
         ])
         self.data = []
 
-        with open(jsonl_file, "r", encoding="utf-8") as f:
-            for line in f:
-                entry = json.loads(line)
-                self.data.append(entry["image"])
+        total_length = 0
+
+        for jsonl_file in self.jsonl_files:
+            with open(jsonl_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    entry = json.loads(line)
+                    self.data.append(entry["image"])
+                    total_length += 1
+        
+        self.total_length = total_length
 
     def __len__(self):
-        return len(self.data)
+        return self.total_length
 
     def __getitem__(self, idx):
         base64_str = self.data[idx]
