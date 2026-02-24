@@ -4,7 +4,11 @@ from toydataset import ToyTextImageDataset
 
 def main():
     # 1. 加载配置
-    config = VAVAEConfig()
+    config = VAVAEConfig(
+        use_deterministic=True,
+        hidden_dims=[96, 192, 384, 768],
+        latent_dim=512,
+    )
     
     # 2. 创建数据集
     dataset = ToyTextImageDataset(num_samples=2000)
