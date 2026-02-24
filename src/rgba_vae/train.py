@@ -151,6 +151,8 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
 
             recon_loss, kl_loss = vae_loss(recon_x, x, mu, log_var)
 
+            v_loss = config.beta_recon * recon_loss + config.beta_kl * kl_loss
+
             _, real_features = vaegan_model.discriminator(x)
 
             fake_validity_gen, fake_features_gen = vaegan_model.discriminator(recon_x)
@@ -162,7 +164,7 @@ def train_vaegan(vaegan_model: VAEGAN, dataset: torch.utils.data.Dataset, config
             # feature matching loss
             fm_loss = feature_matching_loss(real_features, fake_features_gen)
 
-            generator_loss =  config.beta_recon * recon_loss + config.beta_kl * kl_loss + config.beta_g*g_loss + config.beta_fm*fm_loss 
+            generator_loss =  v_loss + config.beta_g*g_loss + config.beta_fm*fm_loss 
 
             generator_loss.backward()
 
